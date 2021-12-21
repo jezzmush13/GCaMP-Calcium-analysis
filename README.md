@@ -5,8 +5,8 @@ Code script for analyzing Calcium signaling in GCaMP cells with LMM
 
 #load the library 
 library(tidyverse)
-library(dplyr)
 library(plyr)
+library(dplyr)
 library(stringr)
 
 #load the data 
