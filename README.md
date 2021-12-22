@@ -113,8 +113,53 @@ library(car)
 leveneTest(amp_mean ~ drug * Condition, data=ROI.means, center=mean) # Levene's test
 leveneTest(amp_mean ~ drug * Condition, data=ROI.means, center=median) # Brown-Forsythe test
 
+#DO LMM Test before modification of the distribution of the data
 
-# see if data seems Poisson-distributed
+# libraries for LMMs 
+library(lme4) # for lmer
+library(lmerTest)
+library(car) # for Anova
+
+# set sum-to-zero contrasts for the Anova calls
+contrasts(ROI.means$date) <- "contr.sum"
+contrasts(ROI.means$Unique_Spot) <- "contr.sum"
+contrasts(ROI.means$Unique_ROIname) <- "contr.sum"
+contrasts(ROI.means$ROI) <- "contr.sum"
+contrasts(ROI.means$Condition) <- "contr.sum"
+contrasts(ROI.means$drug) <- "contr.sum"
+
+
+# LMM with Spot as random effect for DRUG factor
+m = lmer(amp_mean ~ (drug )  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
+# perform post hoc pairwise comparisons
+library(multcomp) # for glht
+library(emmeans) # for emm
+summary(glht(m, emm(pairwise ~ drug)), test=adjusted(type="holm"))
+
+# LMM with Spot as random effect for Condition factor
+m = lmer(amp_mean ~ (Condition)  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
+# perform post hoc pairwise comparisons
+library(multcomp) # for glht
+library(emmeans) # for emm
+summary(glht(m, emm(pairwise ~ Condition)), test=adjusted(type="holm"))
+
+
+# LMM with Spot as random effect drug*Condition
+m = lmer(amp_mean ~ (drug * Condition)  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
+# perform post hoc pairwise comparisons
+library(multcomp) # for glht
+library(emmeans) # for emm
+summary(glht(m, emm(pairwise ~ drug * Condition)), test=adjusted(type="holm"))
+
+with(ROI.means, interaction.plot(drug, Condition, amp_mean, ylim=c(0, max(ROI.means$amp_mean)))) # interaction?
+with(ROI.means, interaction.plot(Condition, drug, amp_mean, ylim=c(0, max(ROI.means$amp_mean)))) # interaction?
+
+
+
+# see if data seems Poisson-distributed (DATA DO NOT FIT IN THIS DISTRIBUTION TYPE)
 #Scaling amp_mean  * 10
 #ROI.means$amp_scale = abs(ROI.means$amp_mean)*10 
 #View(ROI.means) # verify
@@ -123,6 +168,7 @@ leveneTest(amp_mean ~ drug * Condition, data=ROI.means, center=median) # Brown-F
 #fit = fitdist(ROI.means[ROI.means$drug == "nimodipine" & ROI.means$Condition == "no stim",]$amp_mean, "pois", discrete=TRUE)
 #gofstat(fit) # goodness-of-fit test
 
+#MODIFICATION OF THE DATA WITH LOGNORMAL DISTRIBUTION
 #creating log of amp_mean
 ROI.means$logamp_mean = log(ROI.means$amp_mean) # log transform
 View(ROI.means) # verify
@@ -233,44 +279,72 @@ library(car)
 leveneTest(nEvents ~ drug * Condition, data=ROI.means, center=mean) # Levene's test
 leveneTest(nEvents ~ drug * Condition, data=ROI.means, center=median) # Brown-Forsythe test
 
+# libraries for LMMs 
+library(lme4) # for lmer
+library(lmerTest)
+library(car) # for Anova
 
-# see if data seems Poisson-distributed
-library(fitdistrplus)
-fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$Condition == "no stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$Condition == "stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "peg" & ROI.means$Condition == "no stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "peg" & ROI.means$Condition == "stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "nimodipine" & ROI.means$Condition == "no stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "nimodipine" & ROI.means$Condition == "stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "pyr3" & ROI.means$Condition == "no stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "pyr3" & ROI.means$Condition == "stim",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
+# set sum-to-zero contrasts for the Anova calls
+contrasts(ROI.means$date) <- "contr.sum"
+contrasts(ROI.means$Unique_Spot) <- "contr.sum"
+contrasts(ROI.means$Unique_ROIname) <- "contr.sum"
+contrasts(ROI.means$ROI) <- "contr.sum"
+contrasts(ROI.means$Condition) <- "contr.sum"
+contrasts(ROI.means$drug) <- "contr.sum"
 
-
-# main GLMM test on nEvents with drug 
-m = glmer(nEvents ~ (drug) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
-Anova(m, type=3)
+#DOING LMM BEFORE TRANSFORMING THE DATA
+# LMM with Spot as random effect for DRUG factor
+m = lmer(nEvents ~ (drug )  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
 library(multcomp) # for glht
 library(emmeans) # for emm
 summary(glht(m, emm(pairwise ~ drug)), test=adjusted(type="holm"))
 
-# main GLMM test on nEvents with drug and Condition
-m = glmer(nEvents ~ (drug * Condition) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
-Anova(m, type=3)
+# LMM with Spot as random effect for Condition factor
+m = lmer(nEvents ~ (Condition)  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
+# perform post hoc pairwise comparisons
+library(multcomp) # for glht
+library(emmeans) # for emm
+summary(glht(m, emm(pairwise ~ Condition)), test=adjusted(type="holm"))
+
+# LMM with Spot as random effect drug*Condition
+m = lmer(nEvents ~ (drug * Condition)  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
 library(multcomp) # for glht
 library(emmeans) # for emm
 summary(glht(m, emm(pairwise ~ drug * Condition)), test=adjusted(type="holm"))
+
 with(ROI.means, interaction.plot(drug, Condition, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
-with(ROI.means, interaction.plot(Condition, drug, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
+with(ROI.means, interaction.plot(Condition, drug, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction
+
+
+# see if data seems Poisson-distributed (DATA FIT BUT THERE IS NOT MUCH OF A DIFFERENCE)
+#library(fitdistrplus)
+#fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$Condition == "no stim",]$nEvents, "pois", discrete=TRUE)
+#gofstat(fit) # goodness-of-fit test
+#fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$Condition == "stim",]$nEvents, "pois", discrete=TRUE)
+
+
+# main GLMM test on nEvents with drug 
+#m = glmer(nEvents ~ (drug) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
+#Anova(m, type=3)
+# perform post hoc pairwise comparisons
+#library(multcomp) # for glht
+#library(emmeans) # for emm
+#summary(glht(m, emm(pairwise ~ drug)), test=adjusted(type="holm"))
+
+# main GLMM test on nEvents with drug and Condition
+#m = glmer(nEvents ~ (drug * Condition) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
+#Anova(m, type=3)
+# perform post hoc pairwise comparisons
+#library(multcomp) # for glht
+#library(emmeans) # for emm
+#summary(glht(m, emm(pairwise ~ drug * Condition)), test=adjusted(type="holm"))
+#with(ROI.means, interaction.plot(drug, Condition, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
+#with(ROI.means, interaction.plot(Condition, drug, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
 
 
 #Transforming to log
@@ -385,56 +459,83 @@ library(car)
 leveneTest(nEvents ~ drug * ROI, data=ROI.means, center=mean) # Levene's test
 leveneTest(nEvents ~ drug * ROI, data=ROI.means, center=median) # Brown-Forsythe test
 
+# libraries for LMMs 
+library(lme4) # for lmer
+library(lmerTest)
+library(car) # for Anova
 
-# see if data seems Poisson-distributed
-library(fitdistrplus)
-fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$ROI == "Process",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$ROI == "Soma",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-library(fitdistrplus)
-fit = fitdist(ROI.means[ROI.means$drug == "peg" & ROI.means$ROI == "Process",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "peg" & ROI.means$ROI == "Soma",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-library(fitdistrplus)
-fit = fitdist(ROI.means[ROI.means$drug == "nimodipine" & ROI.means$ROI == "Process",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "nimodipine" & ROI.means$ROI == "Soma",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-library(fitdistrplus)
-fit = fitdist(ROI.means[ROI.means$drug == "pyr3" & ROI.means$ROI == "Process",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
-fit = fitdist(ROI.means[ROI.means$drug == "pyr3" & ROI.means$ROI == "Soma",]$nEvents, "pois", discrete=TRUE)
-gofstat(fit) # goodness-of-fit test
+# set sum-to-zero contrasts for the Anova calls
+contrasts(ROI.means$date) <- "contr.sum"
+contrasts(ROI.means$Unique_Spot) <- "contr.sum"
+contrasts(ROI.means$Unique_ROIname) <- "contr.sum"
+contrasts(ROI.means$ROI) <- "contr.sum"
+contrasts(ROI.means$Condition) <- "contr.sum"
+contrasts(ROI.means$drug) <- "contr.sum"
 
-
-# main GLMM test on nEvents with drug 
-m = glmer(nEvents ~ (drug) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
-Anova(m, type=3)
+#DOING LMM before transforming the data
+# LMM with Spot as random effect for DRUG factor
+m = lmer(nEvents ~ (drug )  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
 library(multcomp) # for glht
 library(emmeans) # for emm
 summary(glht(m, emm(pairwise ~ drug)), test=adjusted(type="holm"))
 
-# main GLMM test on nEvents with ROI
-m = glmer(nEvents ~ (ROI) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
-Anova(m, type=3)
+# LMM with Spot as random effect for ROI factor
+m = lmer(nEvents ~ (ROI)  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
 library(multcomp) # for glht
 library(emmeans) # for emm
 summary(glht(m, emm(pairwise ~ ROI)), test=adjusted(type="holm"))
 
-# main GLMM test on nEvents with drug and ROI
-m = glmer(nEvents ~ (drug * ROI) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
-Anova(m, type=3)
+# LMM with Spot as random effect drug*ROI
+m = lmer(nEvents ~ (drug * ROI)  + (1|Unique_ROIname), data=ROI.means)
+Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
 library(multcomp) # for glht
 library(emmeans) # for emm
 summary(glht(m, emm(pairwise ~ drug * ROI)), test=adjusted(type="holm"))
 
 with(ROI.means, interaction.plot(drug, ROI, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
-with(ROI.means, interaction.plot(ROI, drug, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
+with(ROI.means, interaction.plot(ROI, drug, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction
+
+
+
+# see if data seems Poisson-distributed (THEY FIT BUT THERE IS NOT MUCH OF A DIFFERENCE)
+#library(fitdistrplus)
+#fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$ROI == "Process",]$nEvents, "pois", discrete=TRUE)
+#gofstat(fit) # goodness-of-fit test
+#fit = fitdist(ROI.means[ROI.means$drug == "baseline" & ROI.means$ROI == "Soma",]$nEvents, "pois", discrete=TRUE)
+#gofstat(fit) # goodness-of-fit test
+
+
+# main GLMM test on nEvents with drug 
+#m = glmer(nEvents ~ (drug) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
+#Anova(m, type=3)
+# perform post hoc pairwise comparisons
+#library(multcomp) # for glht
+#library(emmeans) # for emm
+#summary(glht(m, emm(pairwise ~ drug)), test=adjusted(type="holm"))
+
+# main GLMM test on nEvents with ROI
+#m = glmer(nEvents ~ (ROI) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
+#Anova(m, type=3)
+# perform post hoc pairwise comparisons
+#library(multcomp) # for glht
+#library(emmeans) # for emm
+#summary(glht(m, emm(pairwise ~ ROI)), test=adjusted(type="holm"))
+
+# main GLMM test on nEvents with drug and ROI
+#m = glmer(nEvents ~ (drug * ROI) + (1|Unique_ROIname), data=ROI.means, family=poisson, nAGQ=1)
+#Anova(m, type=3)
+# perform post hoc pairwise comparisons
+#library(multcomp) # for glht
+#library(emmeans) # for emm
+#summary(glht(m, emm(pairwise ~ drug * ROI)), test=adjusted(type="holm"))
+
+#with(ROI.means, interaction.plot(drug, ROI, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
+#with(ROI.means, interaction.plot(ROI, drug, nEvents, ylim=c(0, max(ROI.means$nEvents)))) # interaction?
 
 
 #LMM with lognEvents
@@ -476,7 +577,7 @@ contrasts(ROI.means$Condition) <- "contr.sum"
 contrasts(ROI.means$drug) <- "contr.sum"
 
 
-# LMM with Spot as random effect for DRUG factor
+# LMM with ROI as random effect for DRUG factor
 m = lmer(lognEvents ~ (drug )  + (1|Unique_ROIname), data=ROI.means)
 Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
@@ -484,7 +585,7 @@ library(multcomp) # for glht
 library(emmeans) # for emm
 summary(glht(m, emm(pairwise ~ drug)), test=adjusted(type="holm"))
 
-# LMM with Spot as random effect for ROI factor
+# LMM with ROI as random effect for ROI factor
 m = lmer(lognEvents ~ (ROI)  + (1|Unique_ROIname), data=ROI.means)
 Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
@@ -492,7 +593,7 @@ library(multcomp) # for glht
 library(emmeans) # for emm
 summary(glht(m, emm(pairwise ~ ROI)), test=adjusted(type="holm"))
 
-# LMM with Spot as random effect drug*Condition
+# LMM with ROI as random effect drug*Condition
 m = lmer(lognEvents ~ (drug * ROI)  + (1|Unique_ROIname), data=ROI.means)
 Anova(m, type=3, test.statistic="F")
 # perform post hoc pairwise comparisons
